@@ -1,0 +1,6 @@
+[skill]
+  skill_package = "cigar-stock-detector.skill"
+  name = "cigar-stock-detector"
+  description = "烟蒂股探测与资产垫估值分析工具，支持HKFRS/US/CN-GAAP准则映射、T0/T1/T2净资产价值计算、现金池深水区穿透、合同负债剔除、资产烧损率评估及23项风险扫描；当用户需要分析低估值股票、评估净现金价值、进行格雷厄姆式价值投资或探测潜在清算价值时使用"
+  project_name = "烟蒂股审计技能"
+  project_description = "烟蒂股探测与资产垫估值分析"
