@@ -143,6 +143,58 @@ python scripts/tsr_dividend_calculator.py --data '{
 - **真实股东收益率 (Shareholder Yield)** = 总分配额 / 总市值
 - **母公司现金流转摩擦率** = 总分配额 / 母公司单体货币资金（>1 触发致命警告）
 
+### Step 2.5: 周期股专项检测 — 仅强周期行业执行
+
+当 Step 1 识别标的属于强周期行业（港口、钢铁、煤炭、航运、化工等）时，在 Step 2 和 Step 3 之间插入本步骤。非周期行业跳过。
+
+#### 2.5A: 周期位置定位 — 调用脚本
+
+使用周期检测引擎 (`scripts/cycle_detector.py`) 判断当前处于周期的哪个位置。
+
+**脚本调用示例（港口行业）**：
+```bash
+python scripts/cycle_detector.py --data '{
+  "industry": "port",
+  "throughput_data": [4.2, 4.5, 4.8, 5.1, 5.3, 5.2, 5.0, 4.9, 5.1, 5.3, 5.4, 5.5],
+  "freight_index_data": [1200, 1350, 1500, 1620, 1700, 1650, 1580, 1550, 1600, 1680, 1720, 1750],
+  "capacity_utilization": 0.82,
+  "capex_depreciation_ratio": 1.8,
+  "profit_history": [35, 42, 55, 68, 72, 65, 58, 50, 55, 60],
+  "dividend_history": [12, 15, 20, 25, 28, 26, 24, 22, 23, 24],
+  "throughput_structure": {
+    "domestic_ratio": 0.4,
+    "container_ratio": 0.6,
+    "top3_partner_concentration": 0.45
+  }
+}'
+```
+
+**输出解读**：
+- `cycle_position`: 周期位置判定（低谷期/爬坡期/繁荣期/见顶期/下行期）
+- `cap_adjusted_dividend`: 周期调整后分红率及分红韧性
+- `capex_cycle_risk`: CAPEX周期错配风险等级
+- `throughput_structure_resilience`: 业务结构抗周期能力
+- `investment_implication`: 综合投资建议
+
+#### 2.5B: 先行指标仪表盘 — 智能体执行
+
+脚本输出周期位置后，智能体需补充收集和解读先行指标：
+
+**港口行业先行指标**：
+| 指标 | 判断标准 | 信号 |
+|------|---------|------|
+| CCFI/SCFI | 连续4周下跌 → 出口走弱 | 领先1-2季度 |
+| BDI | 从高位回撤>15% → 干散货走弱 | 领先1-2季度 |
+| PMI新出口订单 | <50 → 出口收缩 | 领先1-2季度 |
+| 港口吞吐量月度 | 同比连续3月转负 → 下行 | 当期 |
+
+**红绿灯系统**：
+- 绿灯（3+指标向好）：周期上行，红利可持续
+- 黄灯（1-2指标走弱）：周期可能拐点，需警惕
+- 红灯（3+指标走弱）：周期下行，高分红不可持续
+
+**详细指引**：见 [references/cyclical-industry-guide.md](references/cyclical-industry-guide.md)
+
 ### Step 3: Fact Check 陷阱扫描 — 智能体执行
 
 **第一轮：VETO 项扫描 (一票否决)**
@@ -234,8 +286,10 @@ python scripts/tsr_dividend_calculator.py --data '{
 ## 资源索引
 
 - 脚本: 见 [scripts/tsr_dividend_calculator.py](scripts/tsr_dividend_calculator.py) (用途: TSR 核心指标计算与合规性校验; 参数: JSON 格式财务数据)
+- 脚本: 见 [scripts/cycle_detector.py](scripts/cycle_detector.py) (用途: 周期位置定位、跨周期平滑分红评估、CAPEX错配检测; 参数: JSON 格式周期性数据; 仅强周期行业使用)
 - 参考: 见 [references/dividend-trap-rules.md](references/dividend-trap-rules.md) (何时读取: 执行陷阱扫描时参考详细定义)
 - 参考: 见 [references/tsr-calculation-methods.md](references/tsr-calculation-methods.md) (何时读取: 需要理解 TSR 计算公式推导时参考)
+- 参考: 见 [references/cyclical-industry-guide.md](references/cyclical-industry-guide.md) (何时读取: 分析强周期行业时必读，含周期位置方法论、先行指标清单、投资策略匹配)
 - 报告目录: [reports/](reports/) (用途: 存储生成的分析报告; 命名规则: `{company-name}-{stock-code}-tsr-analysis-{YYYYMMDD}.md`)
 
 ## 注意事项
